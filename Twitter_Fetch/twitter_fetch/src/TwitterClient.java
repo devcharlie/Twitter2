@@ -23,71 +23,111 @@ import twitter4j.conf.ConfigurationBuilder;
 public class TwitterClient {
 	private String CONSUMER_KEY;
 	private String CONSUMER_KEY_SECRET;
-	//String[] tokens;
-	String delims=" ";
-	String[] keywords;
+	private ArrayList <String[]> tokens = new ArrayList<String[]>();
+	private ConfigurationBuilder cb;
+	String delim = " ";
 	
-	
-	ArrayList <String> tokens = new ArrayList();
-	
+	//Constructor
 	public TwitterClient(String KEY, String KEY_SECRET){
 		CONSUMER_KEY = KEY;
 		CONSUMER_KEY_SECRET = KEY_SECRET;
-	}
-	
-	public void startSeachAPI(String qstr) throws TwitterException, IOException{
-		ConfigurationBuilder cb = new ConfigurationBuilder();
+		cb = new ConfigurationBuilder();
 		cb.setDebugEnabled(true)
 		  .setOAuthConsumerKey(CONSUMER_KEY)
 		  .setOAuthConsumerSecret(CONSUMER_KEY_SECRET)
 		  .setApplicationOnlyAuthEnabled(true);
+	}
+	
+	//Getters
+	public String getConsumerKey()
+	{
+		return CONSUMER_KEY;
+	}	
+
+	public String getConsumerKeySecret()
+	{
+		return CONSUMER_KEY_SECRET;
+	}	
+	
+	public ArrayList<String[]> getSearchResults()
+	{
+		return tokens;
+	}
+	
+	//Mutators
+	public void setConsumerKey(String ck)
+	{
+		CONSUMER_KEY = ck;
+	}
+	
+	public void setConsumerKeySecret(String cks)
+	{
+		cks =  CONSUMER_KEY_SECRET;
+	}
+		
+	//Results toString
+	public String toString()
+	{
+		String string = "";
+		for(int i=0; i<tokens.size(); i++)
+		{
+			String[] temp = tokens.get(i);
+			string += "This List is: ";
+			for(int j=0; j<temp.length; j++)
+			{
+				
+				string += temp[j];
+			}
+			string += "\n";
+		}
+		return string;
+	}
+	
+	public void startSeachAPI(String qstr) throws TwitterException, IOException{
 		TwitterFactory tf = new TwitterFactory(cb.build());
 		Twitter twitter = tf.getInstance();
+		ArrayList<String> tweet = new ArrayList<String>();
 		
 		OAuth2Token token = twitter.getOAuth2Token();		
 	    if (token != null) {
 	        System.out.println("Token Type  : " + token.getTokenType());
 	        System.out.println("Access Token: " + token.getAccessToken());
 	    }
+	    
 	    Query query = new Query(qstr);
-		query.setCount(1000);
-		//long id = (long) 422204137108168705;
-		//result.getSinceId();
+		query.setCount(10);
+		
 		QueryResult result = twitter.search(query);
-		int i=0;
-		String[] temp;
+
 	    for (Status status : result.getTweets()) {
+
 	        //System.out.println("@" + status.getUser().getScreenName() + ":" + status.getText());
-	        temp = status.getText().split(delims);
-	        for(int k=0; k<temp.length; k++)
-	        {
-	        	//tokens.add(temp[k]);
-	        	//System.out.println(temp[k]);
-	        	String tmp = temp[k].toString() + "\n";
-	        	tokens.add(tmp);
-	        }
+	        String[] temp = status.getText().split(delim);
+	        tokens.add(temp);
 	    }
-	    System.out.println(tokens);
 	}
 	
 	public void getUserTimeLine(String user) throws TwitterException{
-			ConfigurationBuilder cb = new ConfigurationBuilder();
-			cb.setDebugEnabled(true)
-			  .setOAuthConsumerKey(CONSUMER_KEY)
-			  .setOAuthConsumerSecret(CONSUMER_KEY_SECRET)
-			  .setApplicationOnlyAuthEnabled(true);
 			TwitterFactory tf = new TwitterFactory(cb.build());
 			Twitter twitter = tf.getInstance();			
 			OAuth2Token token = twitter.getOAuth2Token();
+			
 			if (token != null) {
 		        System.out.println("Token Type  : " + token.getTokenType());
 		        System.out.println("Access Token: " + token.getAccessToken());
 		    }
+			
 			List<Status> statuses;
             statuses = twitter.getUserTimeline(user);
             System.out.println("Showing @" + user + "'s user timeline.");
+            
             for (Status status : statuses) {
                 System.out.println("@" + status.getUser().getScreenName() + " - " + status.getText());
             }
         }
+
+	public void stopWordRemoval()
+	{
+		
+	}
 }
