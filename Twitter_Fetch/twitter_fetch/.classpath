@@ -7,5 +7,6 @@
 	<classpathentry kind="lib" path="C:/Twitter/lib/twitter4j-examples-4.0.2.jar"/>
 	<classpathentry kind="lib" path="C:/Twitter/lib/twitter4j-media-support-4.0.2.jar"/>
 	<classpathentry kind="lib" path="C:/Twitter/lib/twitter4j-stream-4.0.2.jar"/>
+	<classpathentry kind="lib" path="C:/Twitter/Twitter_Fetch/twitter_fetch/lib/org.tartarus.snowball.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
