@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.ListIterator;
 
 public class Tweet {
 	private ArrayList<String> hashTags = new ArrayList<String>();
@@ -72,6 +73,34 @@ public class Tweet {
 	public void addAtTag(String string)
 	{
 		atTags.add(string);
+	}
+	
+	public String toString() {
+		String string = "";
+		
+		ListIterator<String> iterate = getTweet().listIterator();
+		string += "Tweet is: ";
+		while (iterate.hasNext()) {
+			String temp = iterate.next();
+			string += temp + " ";
+		}
+
+		iterate = getHashTags().listIterator();
+		string += "\nHastTag: ";
+		while (iterate.hasNext()) {
+			String temp = iterate.next();
+			string += temp + " ";
+		}
+		
+		iterate = getAtTags().listIterator();
+		string += "\nAtTag: ";
+		while (iterate.hasNext()) {
+			String temp = iterate.next();
+			string += temp + " ";
+		}
+			
+		string += '\n';
+		return string;
 	}
 	
 }

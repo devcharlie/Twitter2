@@ -40,7 +40,7 @@ public class TwitterClient {
 	private String CONSUMER_KEY;
 	private String CONSUMER_KEY_SECRET;
 	private ConfigurationBuilder cb;
-	private ArrayList<Tweet> tweets = new ArrayList<Tweet>();
+	
 	
 	// Constructor
 	public TwitterClient(String KEY, String KEY_SECRET) {
@@ -53,10 +53,6 @@ public class TwitterClient {
 	}
 
 	// Getters
-	public ArrayList<Tweet> getTweets()
-	{
-		return tweets;
-	}
 	
 	public String getConsumerKey() {
 		return CONSUMER_KEY;
@@ -64,10 +60,6 @@ public class TwitterClient {
 
 	public String getConsumerKeySecret() {
 		return CONSUMER_KEY_SECRET;
-	}
-
-	public ArrayList<Tweet> getSearchResults() {
-		return tweets;
 	}
 
 	// Mutators
@@ -79,37 +71,8 @@ public class TwitterClient {
 		cks = CONSUMER_KEY_SECRET;
 	}
 
-	// Results toString
-	public String toString() {
-		ListIterator<Tweet> iterate = tweets.listIterator();
-		String string = "";
-		while (iterate.hasNext()) {
-			string += "Tweet is: ";
-			Tweet temp = iterate.next();
-			for (int i = 0; i < temp.getTweet().size(); i++) {
-				String hold = temp.getTweet().get(i);
-				string += hold + " ";
-				
-			}
-
-			
-			if(temp.getHashTags().size()!=0)
-			{string += "\nHastTag: ";
-				string += temp.getHashTags().toString();
-			}
-			
-			if(temp.getAtTags().size()!=0)
-			{string += "\nAtTag: ";
-				
-				string += temp.getAtTags().toString();
-			}
-			string += '\n';
-		}
-		return string;
-	}
-
 	// Other methods
-	public void startSeachAPI(String qstr) throws TwitterException, IOException, ParseException {
+	public void startSeachAPI(String qstr) throws TwitterException, IOException, ParseException, StemmerException {
 		TwitterFactory tf = new TwitterFactory(cb.build());
 		Twitter twitter = tf.getInstance();
 		// ArrayList<String> tweet = new ArrayList<String>();
@@ -120,22 +83,55 @@ public class TwitterClient {
 			System.out.println("Access Token: " + token.getAccessToken());
 		}
 
+		Tweet tweet = null;
 		Query query = new Query(qstr);
-		query.setCount(15);
-		QueryResult result = twitter.search(query);
-		int j=0;
-		for (Status status : result.getTweets()) {
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-	        String date = sdf.format(status.getCreatedAt());
-			//System.out.println("@" + status.getUser().getScreenName() + " : " + status.getText() + " : " + gmtStrDate);
-			String[] temp = status.getText().split(" ");
-			ArrayList<String> hold = new ArrayList<String>();
-			for (int i = 0; i < temp.length; i++) {
-				hold.add(temp[i]);
+		query.setUntil("2014-11-22");
+		//query.setCount(100);
+		
+		//query.setUntil("2014-11-23");
+		
+		int numberOfTweets = 2000;
+		long lastID = 0;
+		int count = 0;
+		while (count < numberOfTweets) {
+			if (numberOfTweets - count > 100){
+				query.setCount(100);
 			}
-			tweets.add(new Tweet(hold, date));
+		    else {
+		    	query.setCount(numberOfTweets - count);
+		    }
+			 //System.out.println("MaxID" + query.getMaxId());
+
+			ArrayList<Status> tweets = new ArrayList<Status>();
+				
+		    try {
+			    QueryResult result = twitter.search(query);
+			    tweets.addAll(result.getTweets());
+			    count += tweets.size();
+			    for (Status status : tweets) {
+					SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+			        String date = sdf.format(status.getCreatedAt());
+					String[] temp = status.getText().split(" ");
+					//System.out.println("Date: " + date + " : MaxId : " + result.getMaxId() + " : id : " + status.getId());			        
+					ArrayList<String> hold = new ArrayList<String>();
+					for (int i = 0; i < temp.length; i++) {
+						hold.add(temp[i]);
+					}
+					tweet = new Tweet(hold, date);
+					getHashtags(tweet);
+					removePunctuation(tweet);
+					//Stem(tweet);
+					StopWordRemoval(tweet);
+					WriteFile(tweet);
+				    lastID = status.getId();
+				}
+			    System.out.println("Gathered " + count);
+	
+			}catch (TwitterException te) {
+		    	System.out.println("Couldn't connect: " + te);
+		    }; 
+		    query.setMaxId(lastID);
 		}
-		 
 	}
 
 	public void getUserTimeLine(String user) throws TwitterException {
@@ -178,72 +174,102 @@ public class TwitterClient {
 		return strFileContent;
 	}
 
-	public void writeFile() throws IOException {
-		ListIterator<Tweet> iterate = tweets.listIterator();
-		FileWriter writer = new FileWriter ("tweets.csv", false);
-		
-		writer.append("Time/Date");
-		writer.append(";");
-		writer.append("HashTag");
-		writer.append(";");
-		writer.append("AtTag");
-		writer.append(";");
-		writer.append("Tweet");
-		writer.append(";");
-		writer.append('\n');
-		writer.flush();
-		
-		while (iterate.hasNext()) {
-			Tweet element = iterate.next();
-			writer.append(element.getDate());
-			writer.append(';');
-
-			ListIterator<String> it = element.getHashTags().listIterator();
+	public void WriteFile(Tweet tweet) throws IOException {
+		File f = new File("tweets.csv");
+		//f.exists()
+		if(1==0)
+		{
+			FileWriter writer = new FileWriter("tweets.csv", true);
+				
+			writer.append(tweet.getDate());
+			writer.append(',');
+	
+			ListIterator<String> it = tweet.getHashTags().listIterator();
 			while (it.hasNext()) {
 				String hold= it.next();
 				writer.append(hold);
-				writer.append(',');
+				writer.append(' ');
 			}
-			writer.append(';');
+			writer.append(',');
+				
+			it = tweet.getAtTags().listIterator();
+			while (it.hasNext()) {
+				String hold= it.next();
+				writer.append(hold);
+				writer.append(' ');
+			}
+			writer.append(',');
 			
-			it = element.getAtTags().listIterator();
+			it = tweet.getTweet().listIterator();
 			while (it.hasNext()) {
 				String hold= it.next();
 				writer.append(hold);
-				writer.append(',');
+				writer.append(' ');
 			}
-			writer.append(';');
-			
-			it = element.getTweet().listIterator();
-			while (it.hasNext()) {
-				String hold= it.next();
-				writer.append(hold);
-				writer.append(',');
-			}
-			writer.append(';');
 			writer.append('\n');
 			writer.flush();
+
+			writer.close();
 		}
-		writer.close();
+		else
+		{
+			FileWriter writer = new FileWriter("tweets.csv", true);
+			/*writer.append("Time/Date");
+			writer.append(",");
+			writer.append("HashTag");
+			writer.append(",");
+			writer.append("AtTag");
+			writer.append(",");
+			writer.append("Tweet");
+			writer.append(",");
+			writer.append('\n');
+			writer.flush();*/
+			
+			writer.append(tweet.getDate());
+			writer.append(',');
+	
+			ListIterator<String> it = tweet.getHashTags().listIterator();
+			while (it.hasNext()) {
+				String hold= it.next();
+				writer.append(hold);
+				writer.append(' ');
+			}
+			writer.append(',');
+				
+			it = tweet.getAtTags().listIterator();
+			while (it.hasNext()) {
+				String hold= it.next();
+				writer.append(hold);
+				writer.append(' ');
+			}
+			writer.append(',');
+			
+			it = tweet.getTweet().listIterator();
+			while (it.hasNext()) {
+				String hold= it.next();
+				writer.append(hold);
+				writer.append(' ');
+			}
+			writer.append('\n');
+			writer.flush();
+
+			writer.close();
+		}
 	}
 
-	public void Stem() throws StemmerException{
-		ListIterator<Tweet> iterate = tweets.listIterator();
+	public void Stem(Tweet tweet) throws StemmerException{
+		ListIterator<String> iterate = tweet.getTweet().listIterator();
 
 		while (iterate.hasNext()) {
-			Tweet element = iterate.next();
-			for (int i = 0; i < element.getTweet().size(); i++) {
-				String hold = element.getTweet().get(i);
-				hold = hold.toLowerCase();
-				hold = EnglishSnowballStemmerFactory.getInstance().process(hold);
-				element.getTweet().set(i, hold);
-			}
-			iterate.set(element);
+			String string = iterate.next();
+			string = string.toLowerCase();
+			string = EnglishSnowballStemmerFactory.getInstance().process(string);
+			iterate.set(string);
 		}
 	}
 
-	public void stopWordRemoval() {
-		String[] stopWordsofwordnet = { "day", "they", "you", "is", "to", "with",
+	public void StopWordRemoval(Tweet tweet) {
+		String[] stopWordsofwordnet = { "rt", "day", "they", "you", "is", "to", "with",
 				"the", "this", "a", "able", "about", "above", "abst",
 				"accordance", "according", "accordingly", "across", "act",
 				"actually", "added", "adj", "affected", "affecting", "affects",
@@ -322,62 +348,60 @@ public class TwitterClient {
 				"specifically", "specified", "specify", "specifying", "still",
 				"stop", "strongly", "sub", "substantially", "successfully",
 				"such", "sufficiently", "suggest", "sup", "sure" };
-		ListIterator<Tweet> iterate = tweets.listIterator();
-		while (iterate.hasNext()) {
-			Tweet element = iterate.next();
-			for (int j = 0; j < stopWordsofwordnet.length; j++) 
-			{
-				ListIterator<String> it = element.getTweet().listIterator();
-				while (it.hasNext()) {
-					String string = it.next();
-					if (string.compareTo(stopWordsofwordnet[j]) == 0) {
-						it.remove();
-						j=0;
-					}
-				}
-			}
-		}
-	}
-
-	public void removePunctuation() {
-		ListIterator<Tweet> iterate = tweets.listIterator();
-
-		while (iterate.hasNext()) {
-			Tweet element = iterate.next();
-			for (int i = 0; i < element.getTweet().size(); i++) {
-				String hold = element.getTweet().get(i);
-				hold = hold.replaceAll("[^0-9a-zA-Z]", "");
-				hold = hold.toLowerCase();
-				element.getTweet().set(i, hold);
-			}
-			for (int i = 0; i < element.getTweet().size(); i++) {
-				if (element.getTweet().get(i).compareTo("") == 0) {
-					element.getTweet().remove(i);
-					i = 0;
-				}
-			}
-			iterate.set(element);
-		}
-	}
-
-	public void getHashtags() {
-		ListIterator<Tweet> iterate = tweets.listIterator();
-		while (iterate.hasNext()) {
-			Tweet element = iterate.next();
-			ListIterator<String> it = element.getTweet().listIterator();
+		
+		for (int j = 0; j < stopWordsofwordnet.length; j++) 
+		{
+			ListIterator<String> it = tweet.getTweet().listIterator();
 			while (it.hasNext()) {
 				String string = it.next();
-				if (string.contains("#")) {
-					element.addHashTag(string);
+				if (string.compareTo(stopWordsofwordnet[j]) == 0) {
 					it.remove();
+					j=0;
 				}
-				if (string.contains("@")) {
-					element.addAtTag(string);
-					it.remove();
-				}
-				if (string.contains("http")) {
-					it.remove();
-				}
+			}
+		}
+	}
+	
+	public void removePunctuation(Tweet tweet) {
+		ListIterator<String> iterate = tweet.getTweet().listIterator();
+		while (iterate.hasNext()) {
+			String string = iterate.next();
+			string = string.replaceAll("[^0-9a-zA-Z]", "");
+			string = string.toLowerCase();
+			iterate.set(string);
+		}
+		
+		iterate = tweet.getHashTags().listIterator();
+		while (iterate.hasNext()) {
+			String string = iterate.next();
+			string = string.replaceAll("[^0-9a-zA-Z]", "");
+			string = string.toLowerCase();
+			iterate.set(string);
+		}
+		
+		iterate = tweet.getAtTags().listIterator();
+		while (iterate.hasNext()) {
+			String string = iterate.next();
+			string = string.replaceAll("[^0-9a-zA-Z]", "");
+			string = string.toLowerCase();
+			iterate.set(string);
+		}
+	}
+
+	public void getHashtags(Tweet tweet) {
+		ListIterator<String> iterate = tweet.getTweet().listIterator();
+		while (iterate.hasNext()) {
+			String string = iterate.next();
+			if (string.contains("http")) {
+				iterate.remove();
+			}
+			else if (string.contains("#")) {
+				tweet.addHashTag(string);
+				iterate.remove();
+			}
+			else if (string.contains("@")) {
+				tweet.addAtTag(string);
+				iterate.remove();
 			}
 		}
 	}

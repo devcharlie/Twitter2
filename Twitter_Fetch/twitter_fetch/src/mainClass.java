@@ -29,7 +29,7 @@ public class mainClass {
 	}
 	
 	//Method to TRY and search for tweets and put them in private variable TwitterClient.tokens
-	public static void tweets(String tag) throws ParseException {
+	public static void tweets(String tag) throws ParseException, StemmerException {
 		try {
 			tw.startSeachAPI(tag);
 		} catch (TwitterException e) {
@@ -44,22 +44,7 @@ public class mainClass {
 		String CONSUMER_KEY_SECRET = "DAfOn9skr9wsMwcqiACRuxWSEtSrN5GhX6SJc6H5NQMZuzN49A";
 		tw = new TwitterClient(CONSUMER_KEY, CONSUMER_KEY_SECRET);
 
-		tweets("nuig");
-		System.out.println("Actual Tweets\n" + tw.toString());
+		tweets("mufc");
 		
-		tw.getHashtags();
-		System.out.println("\nGet HashTags\n" + tw.toString());
-		
-		tw.removePunctuation();
-		System.out.println("\nRemove Punctuation\n" + tw.toString());
-
-		tw.Stem();
-		System.out.println("\nStemmer\n" + tw.toString());
-		
-		tw.stopWordRemoval();
-		System.out.println("Stop Word Removal\n" + tw.toString());
-		
-		tw.writeFile();
-		System.out.println("\nWrite to File");
 	}
 }
